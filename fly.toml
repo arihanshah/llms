@@ -1,24 +1,29 @@
-app = "llms-txt-generator"
-primary_region = "iad"
+# fly.toml app configuration file generated for llms-txt-generator-small-star-4891 on 2026-02-16T15:32:09-08:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'llms-txt-generator-small-star-4891'
+primary_region = 'sjc'
 
 [build]
 
 [env]
-  PORT = "8080"
-  DB_PATH = "/data/llms.db"
-  STATIC_DIR = "/static"
+  DB_PATH = '/data/llms.db'
+  PORT = '8080'
+  STATIC_DIR = '/static'
+
+[[mounts]]
+  source = 'data'
+  destination = '/data'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
 
-[mounts]
-  source = "data"
-  destination = "/data"
-
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+  size = 'shared-cpu-1x'
+  memory = '256mb'
