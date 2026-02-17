@@ -80,7 +80,7 @@ export default function Home() {
   return (
     <main className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-xl lg:ml-[10vw]">
-        <div className="stagger-1 flex items-end justify-between">
+        <div className="stagger-1 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-5xl font-semibold tracking-tight text-text">
               llms.txt
@@ -89,7 +89,7 @@ export default function Home() {
               Generator
             </p>
           </div>
-          <div className="flex items-center gap-1.5 pb-1">
+          <div className="flex items-center gap-1.5 sm:pb-1">
             <span className="text-xs text-text-tertiary mr-1">
               pages
             </span>
