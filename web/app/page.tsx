@@ -10,7 +10,6 @@ type AppState = "idle" | "crawling" | "done" | "error";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
 const MAX_LIMIT = 75;
-const PAGE_PRESETS = [10, 25, 50, 75] as const;
 
 export default function Home() {
   const [state, setState] = useState<AppState>("idle");
@@ -75,56 +74,16 @@ export default function Home() {
     setError("");
   };
 
-  const isPreset = PAGE_PRESETS.includes(maxPages as typeof PAGE_PRESETS[number]);
-
   return (
     <main className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-xl lg:ml-[10vw]">
-        <div className="stagger-1 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-5xl font-semibold tracking-tight text-text">
-              llms.txt
-            </h1>
-            <p className="text-2xl text-text-secondary mt-1">
-              Generator
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 sm:pb-1">
-            <span className="text-xs text-text-tertiary mr-1">
-              pages
-            </span>
-            {PAGE_PRESETS.map((n) => (
-              <button
-                key={n}
-                onClick={() => setMaxPages(n)}
-                disabled={state === "crawling"}
-                className={`px-2 py-0.5 text-xs font-mono rounded transition-all disabled:opacity-50 ${
-                  maxPages === n
-                    ? "bg-accent text-bg"
-                    : "text-text-tertiary border border-border hover:border-border-active hover:text-text-secondary"
-                }`}
-              >
-                {n}
-              </button>
-            ))}
-            <input
-              type="number"
-              min={1}
-              max={MAX_LIMIT}
-              value={isPreset ? "" : maxPages}
-              placeholder="#"
-              onChange={(e) => {
-                const v = parseInt(e.target.value, 10);
-                if (!isNaN(v)) updateMaxPages(v);
-              }}
-              disabled={state === "crawling"}
-              className={`w-10 px-1.5 py-0.5 text-xs font-mono text-center rounded transition-all disabled:opacity-50 bg-transparent focus:outline-none ${
-                !isPreset
-                  ? "bg-accent text-bg"
-                  : "text-text-tertiary border border-border hover:border-border-active focus:border-accent focus:text-text"
-              }`}
-            />
-          </div>
+        <div className="stagger-1">
+          <h1 className="text-5xl font-semibold tracking-tight text-text">
+            llms.txt
+          </h1>
+          <p className="text-2xl text-text-secondary mt-1">
+            Generator
+          </p>
         </div>
 
         <p className="stagger-2 text-sm text-text-tertiary mt-4 mb-8">
@@ -144,7 +103,37 @@ export default function Home() {
           <URLInput onSubmit={handleSubmit} disabled={state === "crawling"} />
         </div>
 
-        <div className="stagger-4 mt-6 mb-2">
+        <div className="stagger-4 mt-4 flex items-center justify-between rounded-lg border border-border bg-surface/50 px-4 py-2.5">
+          <label
+            htmlFor="max-pages"
+            className="text-xs text-text-tertiary"
+          >
+            Max pages to crawl
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              id="max-pages"
+              type="number"
+              min={1}
+              max={MAX_LIMIT}
+              value={maxPages}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                if (!isNaN(v)) updateMaxPages(v);
+              }}
+              onBlur={() => {
+                if (maxPages < 1) updateMaxPages(1);
+              }}
+              disabled={state === "crawling"}
+              className="w-14 bg-raised border border-border rounded px-2 py-1 text-xs font-mono text-text text-center focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
+            />
+            <span className="text-xs text-text-tertiary">
+              / {MAX_LIMIT}
+            </span>
+          </div>
+        </div>
+
+        <div className="stagger-5 mt-5 mb-2">
           <div className="w-6 h-px bg-border-active" />
         </div>
 
