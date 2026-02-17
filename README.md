@@ -9,32 +9,7 @@ A web application that generates [llms.txt](https://llmstxt.org) files for any w
 
 ## Architecture
 
-```mermaid
-graph LR
-    subgraph Browser["Browser (Next.js SPA)"]
-        URL[URL Input]
-        Settings[Settings Panel]
-        Progress[Progress Display]
-        Result[Result + Copy/Download]
-    end
-
-    subgraph Server["Go Server (net/http)"]
-        Handler[internal/server<br/>handlers + SSE + params]
-        Crawler[internal/crawler<br/>colly · configurable depth/pages]
-        Generator[internal/generator<br/>llms.txt + llms-full.txt]
-        Cache[internal/cache<br/>SQLite · 1hr TTL · WAL]
-        DB[(llms.db)]
-    end
-
-    Target((Target Website))
-
-    Browser -- "SSE stream<br/>progress + complete" --> Handler
-    Handler --> Cache
-    Cache --> DB
-    Handler --> Crawler
-    Crawler --> Generator
-    Crawler -- "HTTP crawl" --> Target
-```
+![Architecture](llms.png)
 
 > Editable source: [`architecture.excalidraw`](architecture.excalidraw)
 
