@@ -82,7 +82,7 @@ func (s *Server) handleGenerateStream(w http.ResponseWriter, r *http.Request) {
 	// Determine which crawler to use (per-request limit or shared default)
 	cr := s.crawler
 	if mp := r.URL.Query().Get("max_pages"); mp != "" {
-		if n, err := strconv.Atoi(mp); err == nil && n >= 1 && n <= 200 {
+		if n, err := strconv.Atoi(mp); err == nil && n >= 1 && n <= 75 {
 			cr = &crawler.Crawler{
 				MaxDepth:    s.crawler.MaxDepth,
 				MaxPages:    n,
