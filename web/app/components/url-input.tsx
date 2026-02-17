@@ -33,7 +33,7 @@ export function URLInput({ onSubmit, disabled }: Props) {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://example.com"
-          className="w-full bg-surface border border-border rounded-lg pl-4 pr-28 py-3 text-sm text-text font-mono placeholder:text-text-tertiary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 focus:shadow-[0_0_12px_rgba(255,107,53,0.1)] transition-all disabled:opacity-50"
+          className="w-full bg-surface border border-border rounded-lg pl-4 pr-28 py-3 text-sm text-text font-mono placeholder:text-text-tertiary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 focus:shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent)_10%,transparent)] transition-all disabled:opacity-50"
           disabled={disabled}
           required
         />

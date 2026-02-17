@@ -16,6 +16,20 @@
   --font-mono: var(--font-ibm-plex-mono);
 }
 
+html.light {
+  --color-bg: #FAFAFA;
+  --color-surface: #FFFFFF;
+  --color-raised: #F4F4F5;
+  --color-border: #E4E4E7;
+  --color-border-active: #A1A1AA;
+  --color-text: #18181B;
+  --color-text-secondary: #52525B;
+  --color-text-tertiary: #A1A1AA;
+  --color-accent: #16A34A;
+  --color-error: #DC2626;
+  --color-success: #16A34A;
+}
+
 /* Background layers */
 body {
   position: relative;
@@ -28,7 +42,7 @@ body::before {
   inset: 0;
   background: radial-gradient(
     ellipse 80% 60% at 35% 40%,
-    rgba(255, 107, 53, 0.04) 0%,
+    color-mix(in srgb, var(--color-accent) 4%, transparent) 0%,
     transparent 70%
   );
   pointer-events: none;
@@ -136,6 +150,6 @@ input[type="number"] {
 
 /* Selection color */
 ::selection {
-  background: rgba(255, 107, 53, 0.3);
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
   color: var(--color-text);
 }
