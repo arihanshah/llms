@@ -6,9 +6,11 @@ interface Props {
   content: string;
   pagesCrawled: number;
   cached: boolean;
+  format?: "standard" | "full";
 }
 
-export function ResultDisplay({ content, pagesCrawled, cached }: Props) {
+export function ResultDisplay({ content, pagesCrawled, cached, format = "standard" }: Props) {
+  const filename = format === "full" ? "llms-full.txt" : "llms.txt";
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -21,7 +23,7 @@ export function ResultDisplay({ content, pagesCrawled, cached }: Props) {
     const blob = new Blob([content], { type: "text/plain" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "llms.txt";
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -31,7 +33,7 @@ export function ResultDisplay({ content, pagesCrawled, cached }: Props) {
       <div className="flex items-center justify-between bg-raised border border-border rounded-t-lg px-4 py-2.5">
         <div className="flex items-center gap-3">
           <span className="text-sm text-accent font-mono font-medium">
-            llms.txt
+            {filename}
           </span>
           <span className="text-xs text-text-tertiary font-mono">
             {pagesCrawled} pages{cached ? " · cached" : ""}

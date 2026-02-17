@@ -42,6 +42,40 @@ func Generate(root crawler.Page, sections []crawler.Section) string {
 	return b.String()
 }
 
+// GenerateFull produces an llms-full.txt string with full page content as markdown sections.
+func GenerateFull(root crawler.Page, sections []crawler.Section) string {
+	var b strings.Builder
+
+	title := root.H1
+	if title == "" {
+		title = root.Title
+	}
+	if title == "" {
+		title = root.URL
+	}
+	fmt.Fprintf(&b, "# %s\n", title)
+
+	if root.Description != "" {
+		fmt.Fprintf(&b, "\n> %s\n", root.Description)
+	}
+
+	for _, section := range sections {
+		fmt.Fprintf(&b, "\n## %s\n", section.Name)
+		for _, page := range section.Pages {
+			name := linkName(page)
+			fmt.Fprintf(&b, "\n### %s\n\n", name)
+			fmt.Fprintf(&b, "URL: %s\n\n", page.URL)
+			if page.Body != "" {
+				fmt.Fprintf(&b, "%s\n", page.Body)
+			} else if page.Description != "" {
+				fmt.Fprintf(&b, "%s\n", page.Description)
+			}
+		}
+	}
+
+	return b.String()
+}
+
 func linkName(p crawler.Page) string {
 	if p.Title != "" {
 		return p.Title

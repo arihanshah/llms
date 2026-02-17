@@ -19,9 +19,38 @@ export default function Home() {
   const [cached, setCached] = useState(false);
   const [error, setError] = useState("");
   const [maxPages, setMaxPages] = useState(50);
+  const [maxPagesInput, setMaxPagesInput] = useState("50");
+  const [maxDepth, setMaxDepth] = useState(3);
+  const [maxDepthInput, setMaxDepthInput] = useState("3");
+  const [outputFormat, setOutputFormat] = useState<"standard" | "full">("standard");
+  const [excludePaths, setExcludePaths] = useState("");
 
-  const updateMaxPages = (n: number) => {
-    setMaxPages(Math.max(1, Math.min(MAX_LIMIT, n)));
+  const clampMaxPages = (val: string) => {
+    const n = parseInt(val, 10);
+    if (isNaN(n) || n < 1) {
+      setMaxPages(1);
+      setMaxPagesInput("1");
+    } else if (n > MAX_LIMIT) {
+      setMaxPages(MAX_LIMIT);
+      setMaxPagesInput(String(MAX_LIMIT));
+    } else {
+      setMaxPages(n);
+      setMaxPagesInput(String(n));
+    }
+  };
+
+  const clampMaxDepth = (val: string) => {
+    const n = parseInt(val, 10);
+    if (isNaN(n) || n < 1) {
+      setMaxDepth(1);
+      setMaxDepthInput("1");
+    } else if (n > 5) {
+      setMaxDepth(5);
+      setMaxDepthInput("5");
+    } else {
+      setMaxDepth(n);
+      setMaxDepthInput(String(n));
+    }
   };
 
   const handleSubmit = (url: string) => {
@@ -30,9 +59,11 @@ export default function Home() {
     setError("");
     setProgress({ pagesFound: 0, currentURL: "" });
 
-    const eventSource = new EventSource(
-      `${API_BASE}/api/generate/stream?url=${encodeURIComponent(url)}&max_pages=${maxPages}`
-    );
+    let streamURL = `${API_BASE}/api/generate/stream?url=${encodeURIComponent(url)}&max_pages=${maxPages}&max_depth=${maxDepth}&format=${outputFormat}`;
+    if (excludePaths.trim()) {
+      streamURL += `&exclude=${encodeURIComponent(excludePaths.trim())}`;
+    }
+    const eventSource = new EventSource(streamURL);
 
     eventSource.addEventListener("progress", (e) => {
       const data = JSON.parse(e.data);
@@ -103,33 +134,94 @@ export default function Home() {
           <URLInput onSubmit={handleSubmit} disabled={state === "crawling"} />
         </div>
 
-        <div className="stagger-4 mt-4 flex items-center justify-between rounded-lg border border-border bg-surface/50 px-4 py-2.5">
-          <label
-            htmlFor="max-pages"
-            className="text-xs text-text-tertiary"
-          >
-            Max pages to crawl
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              id="max-pages"
-              type="number"
-              min={1}
-              max={MAX_LIMIT}
-              value={maxPages}
-              onChange={(e) => {
-                const v = parseInt(e.target.value, 10);
-                if (!isNaN(v)) updateMaxPages(v);
-              }}
-              onBlur={() => {
-                if (maxPages < 1) updateMaxPages(1);
-              }}
-              disabled={state === "crawling"}
-              className="w-14 bg-raised border border-border rounded px-2 py-1 text-xs font-mono text-text text-center focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
-            />
-            <span className="text-xs text-text-tertiary">
-              / {MAX_LIMIT}
-            </span>
+        <div className="stagger-4 mt-4 rounded-lg border border-border bg-surface/50 overflow-hidden">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-2.5">
+            {/* Max pages */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="max-pages" className="text-xs text-text-tertiary">
+                Max pages
+              </label>
+              <input
+                id="max-pages"
+                type="number"
+                min={1}
+                max={MAX_LIMIT}
+                value={maxPagesInput}
+                onChange={(e) => setMaxPagesInput(e.target.value)}
+                onBlur={(e) => clampMaxPages(e.target.value)}
+                disabled={state === "crawling"}
+                className="w-14 bg-raised border border-border rounded px-2 py-1 text-xs font-mono text-text text-center focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
+              />
+              <span className="text-xs text-text-tertiary">/ {MAX_LIMIT}</span>
+            </div>
+
+            {/* Crawl depth */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="max-depth" className="text-xs text-text-tertiary">
+                Crawl depth
+              </label>
+              <input
+                id="max-depth"
+                type="number"
+                min={1}
+                max={5}
+                value={maxDepthInput}
+                onChange={(e) => setMaxDepthInput(e.target.value)}
+                onBlur={(e) => clampMaxDepth(e.target.value)}
+                disabled={state === "crawling"}
+                className="w-14 bg-raised border border-border rounded px-2 py-1 text-xs font-mono text-text text-center focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
+              />
+              <span className="text-xs text-text-tertiary">/ 5</span>
+            </div>
+
+            {/* Output format toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-text-tertiary">Output</span>
+              <div className="flex rounded border border-border overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setOutputFormat("standard")}
+                  disabled={state === "crawling"}
+                  className={`px-2.5 py-1 text-xs font-mono transition-colors disabled:opacity-50 ${
+                    outputFormat === "standard"
+                      ? "bg-accent text-surface"
+                      : "bg-raised text-text-secondary hover:bg-surface"
+                  }`}
+                >
+                  llms.txt
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOutputFormat("full")}
+                  disabled={state === "crawling"}
+                  className={`px-2.5 py-1 text-xs font-mono border-l border-border transition-colors disabled:opacity-50 ${
+                    outputFormat === "full"
+                      ? "bg-accent text-surface"
+                      : "bg-raised text-text-secondary hover:bg-surface"
+                  }`}
+                >
+                  llms-full.txt
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Exclude paths */}
+          <div className="border-t border-border px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <label htmlFor="exclude-paths" className="text-xs text-text-tertiary whitespace-nowrap">
+                Exclude paths
+              </label>
+              <input
+                id="exclude-paths"
+                type="text"
+                value={excludePaths}
+                onChange={(e) => setExcludePaths(e.target.value)}
+                placeholder="e.g. /blog, /legal"
+                disabled={state === "crawling"}
+                className="flex-1 bg-raised border border-border rounded px-2 py-1 text-xs font-mono text-text placeholder:text-text-tertiary/50 focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
+              />
+            </div>
           </div>
         </div>
 
@@ -145,6 +237,7 @@ export default function Home() {
               content={result}
               pagesCrawled={pagesCrawled}
               cached={cached}
+              format={outputFormat}
             />
             <button
               onClick={handleReset}

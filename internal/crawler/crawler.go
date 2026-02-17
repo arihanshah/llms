@@ -14,10 +14,11 @@ type ProgressFunc func(pagesFound int, currentURL string)
 
 // Crawler traverses a website and extracts page metadata.
 type Crawler struct {
-	MaxDepth    int
-	MaxPages    int
-	Parallelism int
-	Delay       time.Duration
+	MaxDepth     int
+	MaxPages     int
+	Parallelism  int
+	Delay        time.Duration
+	ExcludePaths []string
 }
 
 // New returns a Crawler with sensible defaults.
@@ -62,6 +63,10 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 		}
 		mu.Unlock()
 
+		if cr.isExcluded(e.Request.URL.String()) {
+			return
+		}
+
 		page := Page{
 			URL:   e.Request.URL.String(),
 			Path:  e.Request.URL.Path,
@@ -80,6 +85,7 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 			body = e.ChildText("body")
 		}
 		page.WordCount = len(strings.Fields(body))
+		page.Body = body
 
 		mu.Lock()
 		pages = append(pages, page)
@@ -104,7 +110,7 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 
 		link := e.Attr("href")
 		absURL := e.Request.AbsoluteURL(link)
-		if shouldFollow(absURL, parsed.Host) {
+		if shouldFollow(absURL, parsed.Host) && !cr.isExcluded(absURL) {
 			e.Request.Visit(absURL)
 		}
 	})
@@ -113,6 +119,23 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 	c.Wait()
 
 	return pages, nil
+}
+
+// isExcluded returns true if the URL path starts with any excluded prefix.
+func (cr *Crawler) isExcluded(absURL string) bool {
+	if len(cr.ExcludePaths) == 0 {
+		return false
+	}
+	u, err := url.Parse(absURL)
+	if err != nil {
+		return false
+	}
+	for _, prefix := range cr.ExcludePaths {
+		if strings.HasPrefix(u.Path, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func shouldFollow(absURL, allowedHost string) bool {

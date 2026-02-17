@@ -9,4 +9,5 @@ type Page struct {
 	H1          string `json:"h1"`
 	Depth       int    `json:"depth"`
 	WordCount   int    `json:"word_count"`
+	Body        string `json:"-"`
 }

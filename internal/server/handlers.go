@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/arihan/llms/internal/crawler"
 	"github.com/arihan/llms/internal/generator"
@@ -79,18 +80,32 @@ func (s *Server) handleGenerateStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine which crawler to use (per-request limit or shared default)
-	cr := s.crawler
+	// Build per-request crawler from query params
+	cr := &crawler.Crawler{
+		MaxDepth:    s.crawler.MaxDepth,
+		MaxPages:    s.crawler.MaxPages,
+		Parallelism: s.crawler.Parallelism,
+		Delay:       s.crawler.Delay,
+	}
 	if mp := r.URL.Query().Get("max_pages"); mp != "" {
 		if n, err := strconv.Atoi(mp); err == nil && n >= 1 && n <= 75 {
-			cr = &crawler.Crawler{
-				MaxDepth:    s.crawler.MaxDepth,
-				MaxPages:    n,
-				Parallelism: s.crawler.Parallelism,
-				Delay:       s.crawler.Delay,
+			cr.MaxPages = n
+		}
+	}
+	if md := r.URL.Query().Get("max_depth"); md != "" {
+		if n, err := strconv.Atoi(md); err == nil && n >= 1 && n <= 5 {
+			cr.MaxDepth = n
+		}
+	}
+	if ex := r.URL.Query().Get("exclude"); ex != "" {
+		for _, p := range strings.Split(ex, ",") {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				cr.ExcludePaths = append(cr.ExcludePaths, p)
 			}
 		}
 	}
+	format := r.URL.Query().Get("format") // "standard" (default) or "full"
 
 	sse, err := NewSSEWriter(w)
 	if err != nil {
@@ -127,7 +142,12 @@ func (s *Server) handleGenerateStream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	root, sections := crawler.ClassifyPages(pages, targetURL)
-	result := generator.Generate(root, sections)
+	var result string
+	if format == "full" {
+		result = generator.GenerateFull(root, sections)
+	} else {
+		result = generator.Generate(root, sections)
+	}
 
 	pagesJSON, _ := json.Marshal(pages)
 	s.cache.Set(targetURL, result, string(pagesJSON))
