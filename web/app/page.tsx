@@ -154,7 +154,7 @@ export default function Home() {
                 disabled={state === "crawling"}
                 className="w-14 bg-raised border border-border rounded px-2 py-1 text-xs font-mono text-text text-center focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
               />
-              <span className={`text-xs transition-colors ${parseInt(maxPagesInput, 10) > MAX_LIMIT ? "text-accent font-medium" : "text-text-tertiary"}`}>
+              <span className={`text-xs w-14 transition-colors ${parseInt(maxPagesInput, 10) > MAX_LIMIT ? "text-accent font-medium" : "text-text-tertiary"}`}>
                 / {MAX_LIMIT}{parseInt(maxPagesInput, 10) > MAX_LIMIT && " max"}
               </span>
             </div>
