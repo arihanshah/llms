@@ -68,54 +68,71 @@ export default function Home() {
   };
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-16">
-      <h1 className="text-3xl font-bold tracking-tight mb-1">
-        llms.txt Generator
-      </h1>
-      <p className="text-gray-500 mb-8">
-        Generate a spec-compliant{" "}
-        <a
-          href="https://llmstxt.org"
-          className="underline hover:text-gray-700"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          llms.txt
-        </a>{" "}
-        file for any website.
-      </p>
-
-      <URLInput onSubmit={handleSubmit} disabled={state === "crawling"} />
-
-      {state === "crawling" && <Progress {...progress} />}
-
-      {state === "done" && (
-        <>
-          <ResultDisplay
-            content={result}
-            pagesCrawled={pagesCrawled}
-            cached={cached}
-          />
-          <button
-            onClick={handleReset}
-            className="mt-4 text-sm text-gray-500 hover:text-gray-700 underline"
-          >
-            Generate another
-          </button>
-        </>
-      )}
-
-      {state === "error" && (
-        <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-600">{error}</p>
-          <button
-            onClick={handleReset}
-            className="mt-2 text-sm text-red-500 hover:text-red-700 underline"
-          >
-            Try again
-          </button>
+    <main className="min-h-screen flex items-center justify-center px-6">
+      <div className="w-full max-w-xl lg:ml-[10vw]">
+        <div className="stagger-1">
+          <h1 className="font-serif not-italic text-5xl tracking-tight text-text">
+            llms.txt
+          </h1>
+          <p className="text-2xl text-text-secondary font-mono mt-1">
+            Generator
+          </p>
         </div>
-      )}
+
+        <p className="stagger-2 text-sm text-text-tertiary mt-4 mb-8">
+          Generate a spec-compliant{" "}
+          <a
+            href="https://llmstxt.org"
+            className="text-text-secondary hover:text-accent transition-colors"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            llms.txt
+          </a>{" "}
+          file for any website.
+        </p>
+
+        <div className="stagger-3">
+          <URLInput onSubmit={handleSubmit} disabled={state === "crawling"} />
+        </div>
+
+        <div className="stagger-4 mt-6 mb-2">
+          <div className="w-6 h-px bg-border-active" />
+        </div>
+
+        {state === "crawling" && <Progress {...progress} />}
+
+        {state === "done" && (
+          <div className="stagger-5">
+            <ResultDisplay
+              content={result}
+              pagesCrawled={pagesCrawled}
+              cached={cached}
+            />
+            <button
+              onClick={handleReset}
+              className="mt-4 text-sm text-text-tertiary hover:text-accent transition-colors"
+            >
+              Generate another
+            </button>
+          </div>
+        )}
+
+        {state === "error" && (
+          <div
+            className="mt-6 border-l-2 border-accent bg-raised/50 rounded-r-lg px-4 py-3"
+            style={{ animation: "slideInFromLeft 0.3s ease-out" }}
+          >
+            <p className="text-sm text-error">{error}</p>
+            <button
+              onClick={handleReset}
+              className="mt-2 text-sm text-text-tertiary hover:text-accent transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+      </div>
     </main>
   );
 }

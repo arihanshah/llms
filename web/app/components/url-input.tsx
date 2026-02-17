@@ -26,26 +26,28 @@ export function URLInput({ onSubmit, disabled }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2">
-      <div className="flex gap-2">
+    <form onSubmit={handleSubmit}>
+      <div className="relative">
         <input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://example.com"
-          className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+          className="w-full bg-surface border border-border rounded-lg pl-4 pr-28 py-3 text-sm text-text font-mono placeholder:text-text-tertiary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 focus:shadow-[0_0_12px_rgba(255,107,53,0.1)] transition-all disabled:opacity-50"
           disabled={disabled}
           required
         />
         <button
           type="submit"
           disabled={disabled}
-          className="bg-gray-900 text-white px-6 py-2.5 rounded-lg text-base font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-accent text-bg px-4 py-1.5 rounded-md text-sm font-medium font-mono hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           Generate
         </button>
       </div>
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && (
+        <p className="text-error text-xs mt-2">{error}</p>
+      )}
     </form>
   );
 }
