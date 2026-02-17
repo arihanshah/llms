@@ -1,6 +1,42 @@
 # llms.txt Generator
 
-A web application that generates [llms.txt](https://llmstxt.org) files for any website. Enter a URL, and the tool crawls the site to produce a spec-compliant `llms.txt` file with real-time progress streaming.
+[![Fly Deploy](https://github.com/arihanshah/llms/actions/workflows/fly-deploy.yml/badge.svg)](https://github.com/arihanshah/llms/actions/workflows/fly-deploy.yml)
+[![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000?logo=next.js)](https://nextjs.org)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+A web application that generates [llms.txt](https://llmstxt.org) files for any website. Enter a URL, and the tool crawls the site to produce a spec-compliant `llms.txt` or `llms-full.txt` file with real-time progress streaming.
+
+## Architecture
+
+```mermaid
+graph LR
+    subgraph Browser["Browser (Next.js SPA)"]
+        URL[URL Input]
+        Settings[Settings Panel]
+        Progress[Progress Display]
+        Result[Result + Copy/Download]
+    end
+
+    subgraph Server["Go Server (net/http)"]
+        Handler[internal/server<br/>handlers + SSE + params]
+        Crawler[internal/crawler<br/>colly · configurable depth/pages]
+        Generator[internal/generator<br/>llms.txt + llms-full.txt]
+        Cache[internal/cache<br/>SQLite · 1hr TTL · WAL]
+        DB[(llms.db)]
+    end
+
+    Target((Target Website))
+
+    Browser -- "SSE stream<br/>progress + complete" --> Handler
+    Handler --> Cache
+    Cache --> DB
+    Handler --> Crawler
+    Crawler --> Generator
+    Crawler -- "HTTP crawl" --> Target
+```
+
+> Editable source: [`architecture.excalidraw`](architecture.excalidraw)
 
 ## Quick Start
 
@@ -31,13 +67,21 @@ make build
 
 Open http://localhost:8080.
 
+## Features
+
+- **Real-time progress** — SSE streaming shows crawl progress as pages are discovered
+- **Configurable crawl** — max pages (1–75), crawl depth (1–5), exclude paths
+- **Two output formats** — `llms.txt` (links + descriptions) and `llms-full.txt` (full page content)
+- **Smart caching** — SQLite cache with 1-hour TTL, settings-aware cache keys
+- **One-click export** — copy to clipboard or download as `domain_llms.txt`
+
 ## How It Works
 
-1. User enters a website URL
-2. The Go backend crawls the site using [colly](https://github.com/gocolly/colly) (max 3 levels deep, max 50 pages)
+1. User enters a website URL and configures settings (depth, page limit, format, exclude paths)
+2. The Go backend crawls the site using [colly](https://github.com/gocolly/colly) with the configured limits
 3. Pages are classified into sections by URL path structure
-4. A spec-compliant `llms.txt` is generated
-5. Results are cached in SQLite for 1 hour
+4. A spec-compliant output is generated (`llms.txt` or `llms-full.txt`)
+5. Results are cached in SQLite for 1 hour (keyed by URL + settings)
 
 Progress is streamed to the browser via Server-Sent Events (SSE).
 
@@ -55,8 +99,16 @@ curl -X POST http://localhost:8080/api/generate \
 ### `GET /api/generate/stream?url=<url>`
 SSE endpoint with real-time crawl progress.
 
+| Param | Description | Default |
+|-------|-------------|---------|
+| `url` | Target URL to crawl | required |
+| `max_pages` | Max pages to crawl (1–75) | 50 |
+| `max_depth` | Crawl depth limit (1–5) | 3 |
+| `format` | `standard` or `full` | standard |
+| `exclude` | Comma-separated path prefixes to skip | — |
+
 ```bash
-curl -N "http://localhost:8080/api/generate/stream?url=https://llmstxt.org"
+curl -N "http://localhost:8080/api/generate/stream?url=https://htmx.org&max_pages=20&max_depth=2&format=full&exclude=/essays,/discord"
 ```
 
 Events: `progress` (pages found), `complete` (final result), `error`.
@@ -67,9 +119,11 @@ Events: `progress` (pages found), `complete` (final result), `error`.
 
 ```bash
 fly launch
-fly volumes create data --size 1 --region iad
+fly volumes create data --size 1 --region sjc
 fly deploy
 ```
+
+Pushes to `main` trigger automatic deployment via GitHub Actions.
 
 ### Docker
 
@@ -84,7 +138,7 @@ docker run -p 8080:8080 -v llms-data:/data llms
 ├── main.go                 # Entry point
 ├── internal/
 │   ├── crawler/            # colly-based web crawler + page classifier
-│   ├── generator/          # llms.txt output builder
+│   ├── generator/          # llms.txt / llms-full.txt output builder
 │   ├── cache/              # SQLite cache with TTL
 │   └── server/             # HTTP handlers + SSE streaming
 ├── web/                    # Next.js frontend (static export)
@@ -97,4 +151,4 @@ docker run -p 8080:8080 -v llms-data:/data llms
 
 - **Backend**: Go, [colly](https://github.com/gocolly/colly), [modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite)
 - **Frontend**: Next.js, TypeScript, Tailwind CSS
-- **Deploy**: Fly.io (single container)
+- **Deploy**: Fly.io (single container), GitHub Actions CI/CD

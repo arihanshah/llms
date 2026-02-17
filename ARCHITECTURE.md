@@ -10,11 +10,11 @@ A web application that generates spec-compliant [llms.txt](https://llmstxt.org) 
 │   (static HTML)  │ ←────────────────── │                              │
 │                  │    progress events   │  ┌──────────┐ ┌───────────┐ │
 │  - URL input     │    + final result    │  │ Crawler  │ │ Generator │ │
-│  - Progress bar  │                      │  │ (colly)  │ │           │ │
-│  - Result view   │                      │  └──────────┘ └───────────┘ │
-│  - Copy/Download │                      │  ┌──────────┐               │
-└──────────────────┘                      │  │  Cache   │               │
-                                          │  │ (SQLite) │               │
+│  - Settings      │                      │  │ (colly)  │ │ txt/full  │ │
+│  - Progress bar  │                      │  └──────────┘ └───────────┘ │
+│  - Result view   │                      │  ┌──────────┐               │
+│  - Copy/Download │                      │  │  Cache   │               │
+└──────────────────┘                      │  │ (SQLite) │               │
                                           │  └──────────┘               │
                                           └──────────────────────────────┘
 ```
@@ -24,28 +24,28 @@ A web application that generates spec-compliant [llms.txt](https://llmstxt.org) 
 1. User enters a URL in the frontend
 2. Frontend opens an `EventSource` to `GET /api/generate/stream?url=...`
 3. Server checks SQLite cache — if hit, returns immediately
-4. On cache miss, colly crawler traverses the site (max depth 3, max 50 pages)
+4. On cache miss, colly crawler traverses the site (configurable depth 1–5, max pages 1–75, with optional path exclusions)
 5. Each page discovery fires an SSE `progress` event to the frontend
 6. After crawling, pages are classified by URL path structure into sections
-7. Generator builds the llms.txt string from the classified sections
-8. Result is cached in SQLite and sent as SSE `complete` event
+7. Generator builds output — `llms.txt` (links + descriptions) or `llms-full.txt` (full page body content)
+8. Result is cached in SQLite (keyed by URL + all settings) and sent as SSE `complete` event
 
 ## Package Design
 
 ### `internal/crawler/`
 - **crawler.go** — colly-based crawler with configurable depth/page limits
-- **page.go** — `Page` struct: URL, title, description, H1, path, depth, word count
+- **page.go** — `Page` struct: URL, title, description, H1, path, depth, word count, body text
 - **classifier.go** — Groups pages into sections by first URL path segment
 
 ### `internal/generator/`
-- **generator.go** — Builds spec-compliant llms.txt from root page + sections
+- **generator.go** — Builds spec-compliant output: `Generate()` for llms.txt (links), `GenerateFull()` for llms-full.txt (full body content)
 
 ### `internal/cache/`
 - **cache.go** — SQLite cache with TTL-based expiration (1 hour default)
 
 ### `internal/server/`
 - **server.go** — HTTP router (stdlib `ServeMux`), static file serving
-- **handlers.go** — `POST /api/generate` (sync) and `GET /api/generate/stream` (SSE)
+- **handlers.go** — `POST /api/generate` (sync) and `GET /api/generate/stream` (SSE) with query params: `max_pages`, `max_depth`, `format`, `exclude`
 - **sse.go** — SSE writer helper
 
 ## Key Design Decisions
@@ -65,8 +65,8 @@ The frontend is a single interactive page with no SEO requirements. `output: 'ex
 ### Why URL-path-based page classification?
 URL paths encode information architecture — `/docs/*`, `/blog/*`, `/about` are near-universal patterns. This heuristic is fast, deterministic, and debuggable. An ML approach would add complexity and unpredictability for marginal improvement.
 
-### Crawler limits: MaxDepth 3, MaxPages 50
-Deep enough to find important pages (home → section → detail), shallow enough to complete in seconds. llms.txt is an overview, not an exhaustive site index. These are the most impactful tuning parameters.
+### Configurable crawler limits (depth 1–5, pages 1–75)
+Defaults (depth 3, 50 pages) are deep enough to find important pages, shallow enough to complete in seconds. Users can tune these per-crawl. The limits are enforced both in the frontend (input clamping with visual "max" indicator) and backend (query param validation).
 
 ### Pure Go SQLite (modernc.org/sqlite)
 Chose over `mattn/go-sqlite3` (CGO) to keep builds simple. Cross-compilation works, minimal Docker images work, no C toolchain needed. Slightly slower but vastly simpler operationally.
