@@ -109,7 +109,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-xl lg:ml-[10vw]">
+      <div className="w-full max-w-xl">
         <div className="stagger-1">
           <h1 className="text-5xl font-semibold tracking-tight text-text">
             llms.txt
