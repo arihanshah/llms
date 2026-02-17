@@ -13,3 +13,5 @@ web/node_modules/
 # IDE
 .vscode/
 .idea/
+
+*.log

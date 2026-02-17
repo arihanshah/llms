@@ -94,7 +94,7 @@ Events: `progress` (pages found), `complete` (final result), `error`.
 
 ```bash
 fly launch
-fly volumes create data --size 1 --region sjc
+fly volumes create data --size 8 --region sjc
 fly deploy
 ```
 
