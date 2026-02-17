@@ -9,6 +9,8 @@ type AppState = "idle" | "crawling" | "done" | "error";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
+const PAGE_PRESETS = [10, 25, 50, 100] as const;
+
 export default function Home() {
   const [state, setState] = useState<AppState>("idle");
   const [progress, setProgress] = useState({ pagesFound: 0, currentURL: "" });
@@ -16,6 +18,7 @@ export default function Home() {
   const [pagesCrawled, setPagesCrawled] = useState(0);
   const [cached, setCached] = useState(false);
   const [error, setError] = useState("");
+  const [maxPages, setMaxPages] = useState(50);
 
   const handleSubmit = (url: string) => {
     setState("crawling");
@@ -24,7 +27,7 @@ export default function Home() {
     setProgress({ pagesFound: 0, currentURL: "" });
 
     const eventSource = new EventSource(
-      `${API_BASE}/api/generate/stream?url=${encodeURIComponent(url)}`
+      `${API_BASE}/api/generate/stream?url=${encodeURIComponent(url)}&max_pages=${maxPages}`
     );
 
     eventSource.addEventListener("progress", (e) => {
@@ -96,14 +99,36 @@ export default function Home() {
           <URLInput onSubmit={handleSubmit} disabled={state === "crawling"} />
         </div>
 
-        <div className="stagger-4 mt-6 mb-2">
+        <div className="stagger-4 mt-5 flex items-center gap-3">
+          <span className="text-xs text-text-tertiary font-mono shrink-0">
+            pages
+          </span>
+          <div className="flex gap-1">
+            {PAGE_PRESETS.map((n) => (
+              <button
+                key={n}
+                onClick={() => setMaxPages(n)}
+                disabled={state === "crawling"}
+                className={`px-2.5 py-1 text-xs font-mono rounded transition-all disabled:opacity-50 ${
+                  maxPages === n
+                    ? "bg-accent text-bg"
+                    : "text-text-tertiary border border-border hover:border-border-active hover:text-text-secondary"
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="stagger-5 mt-5 mb-2">
           <div className="w-6 h-px bg-border-active" />
         </div>
 
         {state === "crawling" && <Progress {...progress} />}
 
         {state === "done" && (
-          <div className="stagger-5">
+          <div style={{ animation: "fadeInUp 0.4s ease-out" }}>
             <ResultDisplay
               content={result}
               pagesCrawled={pagesCrawled}

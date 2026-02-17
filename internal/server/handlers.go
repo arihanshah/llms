@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/arihan/llms/internal/crawler"
 	"github.com/arihan/llms/internal/generator"
@@ -78,6 +79,19 @@ func (s *Server) handleGenerateStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Determine which crawler to use (per-request limit or shared default)
+	cr := s.crawler
+	if mp := r.URL.Query().Get("max_pages"); mp != "" {
+		if n, err := strconv.Atoi(mp); err == nil && n >= 1 && n <= 200 {
+			cr = &crawler.Crawler{
+				MaxDepth:    s.crawler.MaxDepth,
+				MaxPages:    n,
+				Parallelism: s.crawler.Parallelism,
+				Delay:       s.crawler.Delay,
+			}
+		}
+	}
+
 	sse, err := NewSSEWriter(w)
 	if err != nil {
 		http.Error(w, `{"error":"streaming not supported"}`, http.StatusInternalServerError)
@@ -94,7 +108,7 @@ func (s *Server) handleGenerateStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pages, err := s.crawler.Crawl(targetURL, func(pagesFound int, currentURL string) {
+	pages, err := cr.Crawl(targetURL, func(pagesFound int, currentURL string) {
 		sse.Send("progress", map[string]any{
 			"status":      "crawling",
 			"pages_found": pagesFound,
