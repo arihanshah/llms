@@ -15,3 +15,5 @@ web/node_modules/
 .idea/
 
 *.log
+INTERVIEW_PREP.md
+.mcp.json
