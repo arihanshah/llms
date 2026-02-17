@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -107,6 +108,9 @@ func (s *Server) handleGenerateStream(w http.ResponseWriter, r *http.Request) {
 	}
 	format := r.URL.Query().Get("format") // "standard" (default) or "full"
 
+	// Build cache key that incorporates all settings
+	cacheKey := fmt.Sprintf("%s|p=%d|d=%d|f=%s|x=%s", targetURL, cr.MaxPages, cr.MaxDepth, format, strings.Join(cr.ExcludePaths, ","))
+
 	sse, err := NewSSEWriter(w)
 	if err != nil {
 		http.Error(w, `{"error":"streaming not supported"}`, http.StatusInternalServerError)
@@ -114,7 +118,7 @@ func (s *Server) handleGenerateStream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check cache
-	if cached, found, _ := s.cache.Get(targetURL); found {
+	if cached, found, _ := s.cache.Get(cacheKey); found {
 		sse.Send("complete", map[string]any{
 			"result":        cached,
 			"cached":        true,
@@ -150,7 +154,7 @@ func (s *Server) handleGenerateStream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pagesJSON, _ := json.Marshal(pages)
-	s.cache.Set(targetURL, result, string(pagesJSON))
+	s.cache.Set(cacheKey, result, string(pagesJSON))
 
 	sse.Send("complete", map[string]any{
 		"result":        result,
