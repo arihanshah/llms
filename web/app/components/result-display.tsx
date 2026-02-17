@@ -7,10 +7,23 @@ interface Props {
   pagesCrawled: number;
   cached: boolean;
   format?: "standard" | "full";
+  url?: string;
 }
 
-export function ResultDisplay({ content, pagesCrawled, cached, format = "standard" }: Props) {
-  const filename = format === "full" ? "llms-full.txt" : "llms.txt";
+function buildFilename(url: string | undefined, format: string): string {
+  const suffix = format === "full" ? "_llms-full.txt" : "_llms.txt";
+  if (!url) return suffix.slice(1); // fallback: "llms.txt" or "llms-full.txt"
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return host + suffix;
+  } catch {
+    return suffix.slice(1);
+  }
+}
+
+export function ResultDisplay({ content, pagesCrawled, cached, format = "standard", url }: Props) {
+  const filename = buildFilename(url, format);
+  const displayName = format === "full" ? "llms-full.txt" : "llms.txt";
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -33,7 +46,7 @@ export function ResultDisplay({ content, pagesCrawled, cached, format = "standar
       <div className="flex items-center justify-between bg-raised border border-border rounded-t-lg px-4 py-2.5">
         <div className="flex items-center gap-3">
           <span className="text-sm text-accent font-mono font-medium">
-            {filename}
+            {displayName}
           </span>
           <span className="text-xs text-text-tertiary font-mono">
             {pagesCrawled} pages{cached ? " · cached" : ""}

@@ -20,6 +20,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [maxPages, setMaxPages] = useState(50);
   const [maxPagesInput, setMaxPagesInput] = useState("50");
+  const [crawledURL, setCrawledURL] = useState("");
   const [maxDepth, setMaxDepth] = useState(3);
   const [maxDepthInput, setMaxDepthInput] = useState("3");
   const [outputFormat, setOutputFormat] = useState<"standard" | "full">("standard");
@@ -57,6 +58,7 @@ export default function Home() {
     setState("crawling");
     setResult("");
     setError("");
+    setCrawledURL(url);
     setProgress({ pagesFound: 0, currentURL: "" });
 
     let streamURL = `${API_BASE}/api/generate/stream?url=${encodeURIComponent(url)}&max_pages=${maxPages}&max_depth=${maxDepth}&format=${outputFormat}`;
@@ -152,7 +154,9 @@ export default function Home() {
                 disabled={state === "crawling"}
                 className="w-14 bg-raised border border-border rounded px-2 py-1 text-xs font-mono text-text text-center focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
               />
-              <span className="text-xs text-text-tertiary">/ {MAX_LIMIT}</span>
+              <span className={`text-xs transition-colors ${parseInt(maxPagesInput, 10) > MAX_LIMIT ? "text-accent font-medium" : "text-text-tertiary"}`}>
+                / {MAX_LIMIT}{parseInt(maxPagesInput, 10) > MAX_LIMIT && " max"}
+              </span>
             </div>
 
             {/* Crawl depth */}
@@ -238,6 +242,7 @@ export default function Home() {
               pagesCrawled={pagesCrawled}
               cached={cached}
               format={outputFormat}
+              url={crawledURL}
             />
             <button
               onClick={handleReset}
