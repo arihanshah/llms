@@ -175,7 +175,9 @@ export default function Home() {
                 disabled={state === "crawling"}
                 className="w-14 bg-raised border border-border rounded px-2 py-1 text-xs font-mono text-text text-center focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
               />
-              <span className="text-xs text-text-tertiary">/ 5</span>
+              <span className={`text-xs transition-colors ${parseInt(maxDepthInput, 10) > 5 ? "text-accent font-medium" : "text-text-tertiary"}`}>
+                / 5{parseInt(maxDepthInput, 10) > 5 && " max"}
+              </span>
             </div>
 
             {/* Output format toggle */}
