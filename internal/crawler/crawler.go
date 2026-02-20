@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"context"
 	"net/url"
 	"strings"
 	"sync"
@@ -43,10 +44,14 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 	var pages []Page
 	done := false
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	c := colly.NewCollector(
 		colly.AllowedDomains(parsed.Host),
 		colly.MaxDepth(cr.MaxDepth),
 		colly.Async(true),
+		colly.StdlibContext(ctx),
 	)
 
 	c.Limit(&colly.LimitRule{
@@ -55,6 +60,7 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 		Delay:       cr.Delay,
 	})
 
+	// Extract page metadata and body text for each visited page
 	c.OnHTML("html", func(e *colly.HTMLElement) {
 		mu.Lock()
 		if done {
@@ -92,6 +98,7 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 		count := len(pages)
 		if count >= cr.MaxPages {
 			done = true
+			cancel()
 		}
 		mu.Unlock()
 
@@ -100,6 +107,7 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 		}
 	})
 
+	// Follow links to other pages within the same domain
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		mu.Lock()
 		if done {
@@ -111,6 +119,7 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 		link := e.Attr("href")
 		absURL := e.Request.AbsoluteURL(link)
 		if shouldFollow(absURL, parsed.Host) && !cr.isExcluded(absURL) {
+			// Preserves the original URL for depth tracking
 			e.Request.Visit(absURL)
 		}
 	})

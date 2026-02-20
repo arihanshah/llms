@@ -77,6 +77,7 @@ export default function Home() {
     setCrawledURL(url);
     setProgress({ pagesFound: 0, currentURL: "" });
 
+    // Start crawling via SSE (Server-Sent Events)
     let streamURL = `${API_BASE}/api/generate/stream?url=${encodeURIComponent(url)}&max_pages=${maxPages}&max_depth=${maxDepth}&format=${outputFormat}`;
     if (excludePaths.trim()) {
       streamURL += `&exclude=${encodeURIComponent(excludePaths.trim())}`;
