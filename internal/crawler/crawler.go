@@ -55,8 +55,11 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 		colly.StdlibContext(ctx),
 	)
 
-	c.WithTransport(&http.Transport{
-		ResponseHeaderTimeout: 10 * time.Second,
+	c.WithTransport(&cancelTransport{
+		ctx: ctx,
+		rt: &http.Transport{
+			ResponseHeaderTimeout: 10 * time.Second,
+		},
 	})
 
 	c.Limit(&colly.LimitRule{
@@ -160,6 +163,21 @@ func (cr *Crawler) isExcluded(absURL string) bool {
 		}
 	}
 	return false
+}
+
+// cancelTransport wraps an http.RoundTripper and cancels requests when ctx is done.
+type cancelTransport struct {
+	ctx context.Context
+	rt  http.RoundTripper
+}
+
+func (t *cancelTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	select {
+	case <-t.ctx.Done():
+		return nil, t.ctx.Err()
+	default:
+	}
+	return t.rt.RoundTrip(req.WithContext(t.ctx))
 }
 
 func shouldFollow(absURL, allowedHost string) bool {
