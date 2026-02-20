@@ -1,8 +1,6 @@
 package crawler
 
 import (
-	"context"
-	"net/http"
 	"net/url"
 	"strings"
 	"sync"
@@ -46,22 +44,13 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 	done := false
 	doneCh := make(chan struct{})
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	c := colly.NewCollector(
 		colly.AllowedDomains(parsed.Host),
 		colly.MaxDepth(cr.MaxDepth),
 		colly.Async(true),
-		colly.StdlibContext(ctx),
 	)
 
-	c.WithTransport(&cancelTransport{
-		ctx: ctx,
-		rt: &http.Transport{
-			ResponseHeaderTimeout: 10 * time.Second,
-		},
-	})
+	c.SetRequestTimeout(10 * time.Second)
 
 	c.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
@@ -117,7 +106,6 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 		count := len(pages)
 		if count >= cr.MaxPages {
 			done = true
-			cancel()
 			select {
 			case <-doneCh:
 			default:
@@ -143,7 +131,6 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 		link := e.Attr("href")
 		absURL := e.Request.AbsoluteURL(link)
 		if shouldFollow(absURL, parsed.Host) && !cr.isExcluded(absURL) {
-			// Preserves the original URL for depth tracking
 			e.Request.Visit(absURL)
 		}
 	})
@@ -189,21 +176,6 @@ func (cr *Crawler) isExcluded(absURL string) bool {
 		}
 	}
 	return false
-}
-
-// cancelTransport wraps an http.RoundTripper and cancels requests when ctx is done.
-type cancelTransport struct {
-	ctx context.Context
-	rt  http.RoundTripper
-}
-
-func (t *cancelTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	select {
-	case <-t.ctx.Done():
-		return nil, t.ctx.Err()
-	default:
-	}
-	return t.rt.RoundTrip(req.WithContext(t.ctx))
 }
 
 func shouldFollow(absURL, allowedHost string) bool {
