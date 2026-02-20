@@ -44,6 +44,7 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 	var mu sync.Mutex
 	var pages []Page
 	done := false
+	doneCh := make(chan struct{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -117,6 +118,11 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 		if count >= cr.MaxPages {
 			done = true
 			cancel()
+			select {
+			case <-doneCh:
+			default:
+				close(doneCh)
+			}
 		}
 		mu.Unlock()
 
@@ -143,9 +149,29 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 	})
 
 	c.Visit(targetURL)
-	c.Wait()
 
-	return pages, nil
+	// Wait for either MaxPages reached or colly finishing naturally.
+	// c.Wait() can block for minutes draining colly's queue, so we
+	// race it against the doneCh signal.
+	waitCh := make(chan struct{})
+	go func() {
+		c.Wait()
+		close(waitCh)
+	}()
+
+	select {
+	case <-doneCh:
+		// MaxPages reached — don't wait for colly to drain its queue
+	case <-waitCh:
+		// Crawl finished naturally (fewer pages than MaxPages)
+	}
+
+	mu.Lock()
+	result := make([]Page, len(pages))
+	copy(result, pages)
+	mu.Unlock()
+
+	return result, nil
 }
 
 // isExcluded returns true if the URL path starts with any excluded prefix.
