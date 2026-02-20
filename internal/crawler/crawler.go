@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"context"
+	"net/http"
 	"net/url"
 	"strings"
 	"sync"
@@ -54,10 +55,24 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 		colly.StdlibContext(ctx),
 	)
 
+	c.WithTransport(&http.Transport{
+		ResponseHeaderTimeout: 10 * time.Second,
+	})
+
 	c.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
 		Parallelism: cr.Parallelism,
 		Delay:       cr.Delay,
+	})
+
+	// Abort queued requests once we have enough pages
+	c.OnRequest(func(r *colly.Request) {
+		mu.Lock()
+		d := done
+		mu.Unlock()
+		if d {
+			r.Abort()
+		}
 	})
 
 	// Extract page metadata and body text for each visited page
