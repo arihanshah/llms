@@ -136,7 +136,7 @@ func (s *Server) handleGenerateStream(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		log.Printf("crawl error: %v", err)
-		sse.Send("error", map[string]string{"message": "failed to crawl site"})
+		sse.Send("error", map[string]string{"message": fmt.Sprintf("crawl failed — %v", err)})
 		return
 	}
 

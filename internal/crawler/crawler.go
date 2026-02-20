@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 	"sync"
@@ -66,6 +67,32 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 		if d {
 			r.Abort()
 		}
+	})
+
+	// Track blocked status from HTTP errors
+	var lastErr string
+	c.OnError(func(r *colly.Response, err error) {
+		mu.Lock()
+		if r != nil && r.StatusCode >= 400 {
+			switch r.StatusCode {
+			case 403:
+				lastErr = "HTTP 403 (blocked/forbidden)"
+			case 429:
+				lastErr = "HTTP 429 (rate limited)"
+			default:
+				lastErr = fmt.Sprintf("HTTP %d", r.StatusCode)
+			}
+		} else if err != nil {
+			msg := err.Error()
+			if strings.Contains(msg, "connection refused") {
+				lastErr = "connection refused (IP blocked)"
+			} else if strings.Contains(msg, "timeout") {
+				lastErr = "request timed out"
+			} else {
+				lastErr = msg
+			}
+		}
+		mu.Unlock()
 	})
 
 	// Extract page metadata and body text for each visited page
@@ -156,7 +183,12 @@ func (cr *Crawler) Crawl(targetURL string, onProgress ProgressFunc) ([]Page, err
 	mu.Lock()
 	result := make([]Page, len(pages))
 	copy(result, pages)
+	errMsg := lastErr
 	mu.Unlock()
+
+	if len(result) == 0 && errMsg != "" {
+		return nil, fmt.Errorf("%s", errMsg)
+	}
 
 	return result, nil
 }
